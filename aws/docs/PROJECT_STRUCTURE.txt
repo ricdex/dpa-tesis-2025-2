@@ -1,0 +1,201 @@
+ML RETRIES INFRASTRUCTURE - Project Structure
+==============================================
+
+dpa-tesis-2025-2/
+│
+├── 📄 Package & Config Files
+│   ├── package.json                    [Dependencias Node.js]
+│   ├── tsconfig.json                   [Config TypeScript]
+│   ├── cdk.json                        [Config CDK]
+│   ├── .gitignore                      [Archivos ignorados por Git]
+│   └── .env.example                    [Template de variables de entorno]
+│
+├── 📚 Documentación
+│   ├── README.md                       [Documentación técnica completa ⭐]
+│   ├── QUICKSTART.md                   [Guía rápida de inicio ⭐]
+│   ├── MANIFEST.md                     [Inventario de archivos]
+│   └── PROJECT_STRUCTURE.txt           [Este archivo]
+│
+├── 🏗️ AWS CDK - Infraestructura (TypeScript)
+│   ├── bin/
+│   │   └── app.ts                      [Entry point de CDK]
+│   │
+│   └── lib/
+│       └── ml-retries-stack.ts         [Stack principal - S3, Lambda, Step Functions]
+│
+├── 🐍 Lambda - Inferencia (Python)
+│   ├── lambda/
+│   │   ├── lambda_predict_reintento.py [Handler principal ⭐]
+│   │   ├── Dockerfile                  [Imagen Docker para Lambda]
+│   │   └── requirements.txt            [Dependencias Python]
+│
+├── 🔧 Scripts de Deployment & Testing
+│   ├── scripts/
+│   │   ├── setup-and-deploy.sh         [Setup automático (⭐ ejecutar primero)]
+│   │   ├── test-lambda.sh              [Testing de Lambda]
+│   │   └── test-state-machine.sh       [Testing de State Machine]
+│
+├── 🤖 Datos & Modelos
+│   ├── ejecutar-evaluacion-algoritmos.py  [Script original de entrenamiento]
+│   ├── suscripciones.xlsx              [Datos de ejemplo (no versionado)]
+│   └── mejor_modelo.pkl                [Modelo entrenado (generado al ejecutar)]
+│
+└── 📦 Generados por CDK (después del deploy)
+    ├── node_modules/                   [Dependencias Node.js]
+    ├── dist/                           [TypeScript compilado]
+    └── cdk.out/                        [CloudFormation templates]
+
+
+FLOW DE EJECUCIÓN
+==================
+
+1️⃣  PREPARACIÓN
+   npm install                     → Instala dependencias
+   python3 ejecutar-evaluacion... → Entrena modelo
+
+2️⃣  DEPLOYMENT (Automático con script)
+   ./scripts/setup-and-deploy.sh
+   │
+   ├─→ npm run build              → Compila TypeScript
+   ├─→ npx cdk synth              → Valida infraestructura
+   ├─→ npx cdk deploy             → Crea recursos en AWS
+   └─→ aws s3 cp ...              → Sube modelo a S3
+
+3️⃣  TESTING
+   ./scripts/test-lambda.sh        → Prueba Lambda directamente
+   ./scripts/test-state-machine.sh → Prueba State Machine end-to-end
+
+4️⃣  MONITOREO
+   aws logs tail ...               → Ver logs en tiempo real
+
+
+ESTRUCTURA DE ENTRADA/SALIDA
+=============================
+
+INPUT a Lambda:
+{
+  "monto": 150.0,                    ← Número
+  "delta_horas": 5.0,                ← Número
+  "retry_hour": 10,                  ← Número (0-23)
+  "retry_dayofweek": 2,              ← Número (0-6)
+  "retry_is_weekend": 0,             ← Número (0/1)
+  "error_categoria": "cliente_4xx",  ← String
+  "detalle_fail": "Saldo...",        ← String
+  "retry_hora_bucket": "manana"      ← String
+}
+
+OUTPUT de Lambda:
+{
+  "statusCode": 200,
+  "body": {
+    "probabilidad_exito": 0.78,    ← 0-1
+    "reintentar": true,             ← Boolean
+    "threshold_usado": 0.3          ← 0-1
+  }
+}
+
+
+RECURSOS EN AWS
+================
+
+S3 Bucket
+├─ Nombre: ml-retries-model-{ACCOUNT}-{REGION}
+├─ Versionado: Sí
+├─ Encriptación: SSE-S3
+└─ Contiene: models/mejor_modelo.pkl
+
+Lambda Function
+├─ Nombre: MlRetriesStack-InferenceLambda...
+├─ Runtime: Python 3.11 (Docker)
+├─ Timeout: 60 segundos
+├─ Memoria: 512 MB
+├─ Logs: /aws/lambda/ml-retries-inference (30 días)
+└─ Env vars: MODEL_BUCKET, MODEL_KEY, THRESHOLD, LOG_LEVEL
+
+Step Functions State Machine
+├─ Nombre: RetriesStateMachine
+├─ Tipo: Standard
+├─ Pasos: Map → Lambda → Choice → Result
+└─ Capacidad: 5 reintentos paralelos
+
+
+ARCHIVOS CLAVE (En orden de importancia)
+==========================================
+
+1. QUICKSTART.md
+   → Cómo empezar en 5 minutos
+
+2. scripts/setup-and-deploy.sh
+   → Deployment automático (ejecutar primero)
+
+3. lambda/lambda_predict_reintento.py
+   → Código del handler (bien comentado)
+
+4. lib/ml-retries-stack.ts
+   → Definición de infraestructura
+
+5. README.md
+   → Documentación completa con troubleshooting
+
+
+PRÓXIMOS PASOS
+==============
+
+1. Leer: QUICKSTART.md
+2. Ejecutar: ./scripts/setup-and-deploy.sh
+3. Testear: ./scripts/test-lambda.sh
+4. Ver logs: aws logs tail /aws/lambda/ml-retries-inference --follow
+5. Leer: README.md para más detalles
+
+
+VARIABLES DE ENTORNO (Lambda)
+==============================
+
+MODEL_BUCKET  = Nombre del bucket S3 con el modelo
+MODEL_KEY     = Ruta del modelo (default: models/mejor_modelo.pkl)
+THRESHOLD     = Umbral de decisión (default: 0.3, rango: 0-1)
+LOG_LEVEL     = Nivel de logging (default: INFO)
+
+
+COSTOS ESTIMADOS (AWS)
+======================
+
+S3         → $0.02/mes
+Lambda     → $0.20/mes (10k invocaciones)
+Step Func  → $0.25/mes (10k ejecuciones)
+CloudWatch → $0.50/mes (logs)
+─────────────────────
+TOTAL      → ~$1/mes (muy bajo para testing)
+
+
+LIMPIEZA
+========
+
+Destruir infraestructura:
+  npx cdk destroy
+
+Limpiar bucket S3:
+  aws s3 rm s3://{bucket} --recursive
+  aws s3 rb s3://{bucket}
+
+
+ATAJOS ÚTILES
+=============
+
+Ver logs:
+  aws logs tail /aws/lambda/ml-retries-inference --follow
+
+Invocar Lambda manualmente:
+  aws lambda invoke --function-name {NAME} --payload file://payload.json response.json
+
+Listar recursos:
+  aws cloudformation describe-stacks --stack-name ml-retries-stack
+
+Ver árbol del proyecto:
+  tree -I 'node_modules|dist|cdk.out'
+
+
+═════════════════════════════════════════════════════════════════════
+Documento actualizado: Noviembre 2025
+Para dudas, ver README.md o QUICKSTART.md
+═════════════════════════════════════════════════════════════════════
