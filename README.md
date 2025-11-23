@@ -2,7 +2,7 @@
 
 ## 📚 Proyecto de Tesis de Investigación
 
-Este es un proyecto de **investigación en Machine Learning aplicado a pagos recurrentes**, desarrollado para una tesis académica (2025-2).
+Este es un proyecto de **investigación en Machine Learning aplicado a pagos recurrentes**, desarrollado por Ricardo Avila (17200959) para el curso de Tesis (2025-2).
 
 ### 🎯 Objetivo Principal
 
@@ -323,8 +323,9 @@ Año: 2025 | Período: 2
 
 ## 👤 Autor
 
+Ricardo Avila Dextre 17200959
 Tesis de investigación 2025-2
-Universidad [Tu Universidad]
+DPA-ESAN
 
 ---
 
