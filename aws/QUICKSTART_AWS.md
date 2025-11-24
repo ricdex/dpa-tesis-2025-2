@@ -95,13 +95,15 @@ aws logs tail /aws/lambda/ml-retries-inference --follow
 ## 🗑️ Limpiar
 
 ```bash
-# Destruir infraestructura
-npx cdk destroy
-
-# Limpiar bucket S3
-aws s3 rm s3://{bucket} --recursive
-aws s3 rb s3://{bucket}
+# Destruir infraestructura (automático + seguro)
+bash scripts/destroy.sh
 ```
+
+El script:
+- ✅ Muestra advertencia crítica
+- ✅ Requiere confirmación manual
+- ✅ Espera a que CloudFormation termine
+- ✅ Elimina TODO (Lambda, S3, Step Functions, IAM, logs)
 
 ---
 

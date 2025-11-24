@@ -275,12 +275,14 @@ Cuando ya no necesites AWS:
 
 ```bash
 # Desde la carpeta aws/
-npx cdk destroy
-
-# Limpiar bucket S3
-aws s3 rm s3://${BUCKET} --recursive
-aws s3 rb s3://${BUCKET}
+bash scripts/destroy.sh
 ```
+
+El script automáticamente:
+- ✓ Muestra advertencia crítica
+- ✓ Requiere confirmación manual
+- ✓ Elimina CloudFormation stack completo
+- ✓ Espera a que termine la eliminación
 
 ---
 

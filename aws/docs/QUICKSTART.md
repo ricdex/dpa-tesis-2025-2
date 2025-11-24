@@ -222,23 +222,18 @@ aws logs tail /aws/lambda/ml-retries-inference --follow
 
 ## 7. Limpiar (Opcional)
 
-Para destruir toda la infraestructura:
+Para destruir toda la infraestructura de forma segura:
 
 ```bash
-npx cdk destroy
+bash scripts/destroy.sh
 ```
 
-**Nota:** El bucket S3 no se elimina automáticamente. Para eliminarlo:
-
-```bash
-BUCKET_NAME=$(aws cloudformation describe-stacks \
-  --stack-name ml-retries-stack \
-  --query 'Stacks[0].Outputs[?OutputKey==`ModelBucketName`].OutputValue' \
-  --output text)
-
-aws s3 rm s3://${BUCKET_NAME} --recursive
-aws s3 rb s3://${BUCKET_NAME}
-```
+El script automáticamente:
+- ✓ Muestra advertencia crítica sobre pérdida de datos
+- ✓ Requiere confirmación manual (escribir 'eliminar-todo')
+- ✓ Elimina CloudFormation stack completo
+- ✓ Espera a que la eliminación se complete (máx 10 minutos)
+- ✓ Muestra estado en tiempo real
 
 ## 8. Troubleshooting
 

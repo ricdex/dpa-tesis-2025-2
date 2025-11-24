@@ -33,7 +33,9 @@ dpa-tesis-2025-2/
 │   ├── scripts/
 │   │   ├── setup-and-deploy.sh         [Setup automático (⭐ ejecutar primero)]
 │   │   ├── test-lambda.sh              [Testing de Lambda]
-│   │   └── test-state-machine.sh       [Testing de State Machine]
+│   │   ├── test-state-machine.sh       [Testing de State Machine]
+│   │   ├── upload-model.sh             [Subir modelo a S3 (actualizar sin redeploy)]
+│   │   └── destroy.sh                  [Eliminar recursos AWS (seguro)]
 │
 ├── 🤖 Datos & Modelos
 │   ├── ejecutar-evaluacion-algoritmos.py  [Script original de entrenamiento]
@@ -171,12 +173,11 @@ TOTAL      → ~$1/mes (muy bajo para testing)
 LIMPIEZA
 ========
 
-Destruir infraestructura:
-  npx cdk destroy
+Destruir infraestructura (automático + seguro):
+  ./scripts/destroy.sh
 
-Limpiar bucket S3:
-  aws s3 rm s3://{bucket} --recursive
-  aws s3 rb s3://{bucket}
+Nota: El script elimina TODO automáticamente (S3, Lambda, Step Functions, IAM, logs)
+      Requiere confirmación manual (escribir 'eliminar-todo')
 
 
 ATAJOS ÚTILES

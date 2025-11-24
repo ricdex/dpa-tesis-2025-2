@@ -33,7 +33,9 @@ aws/
 ├── scripts/
 │   ├── setup-and-deploy.sh             ← Deployment automático
 │   ├── test-lambda.sh                  ← Testing Lambda
-│   └── test-state-machine.sh           ← Testing batch
+│   ├── test-state-machine.sh           ← Testing batch
+│   ├── upload-model.sh                 ← Subir modelo a S3
+│   └── destroy.sh                      ← Eliminar todos los recursos
 ├── docs/                               ← Documentación técnica
 ├── package.json                        ← Dependencias Node.js
 ├── tsconfig.json                       ← Config TypeScript
@@ -61,6 +63,16 @@ bash scripts/setup-and-deploy.sh
 ```bash
 bash scripts/test-lambda.sh
 bash scripts/test-state-machine.sh
+```
+
+### 4. Actualizar Modelo
+```bash
+bash scripts/upload-model.sh
+```
+
+### 5. Limpiar Recursos
+```bash
+bash scripts/destroy.sh
 ```
 
 ---
@@ -109,7 +121,7 @@ R: No. Esto es solo para desplegar en producción (AWS).
 R: ~$1/mes para uso bajo.
 
 **P: ¿Cómo destruyo todo?**
-R: `npx cdk destroy`
+R: `bash scripts/destroy.sh` (requiere confirmación manual)
 
 ---
 

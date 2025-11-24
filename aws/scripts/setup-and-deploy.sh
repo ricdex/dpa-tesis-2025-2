@@ -95,23 +95,28 @@ echo "✓ Síntesis validada"
 
 echo ""
 echo "========================================="
-echo "Step 4: Verificar que el modelo existe"
+echo "Step 4: Verificar que el modelo existe en ../models"
 echo "========================================="
 echo ""
 
-if [ ! -f "mejor_modelo.pkl" ]; then
-  echo "⚠️  Aviso: mejor_modelo.pkl no encontrado"
+MODEL_SOURCE="../models/mejor_modelo.pkl"
+
+if [ ! -f "$MODEL_SOURCE" ]; then
+  echo "⚠️  Aviso: $MODEL_SOURCE no encontrado"
   echo ""
   echo "Debes entrenar el modelo primero:"
+  echo "  cd .."
   echo "  python3 ejecutar-evaluacion-algoritmos.py"
   echo ""
-  echo "¿Deseas continuar sin el modelo? (se puede subir después) [y/n]"
+  echo "¿Deseas continuar? El modelo se subirá a S3 después del deployment [y/n]"
   read -r continue_without_model
   if [ "${continue_without_model}" != "y" ]; then
     exit 1
   fi
+  MODEL_EXISTS=false
 else
-  echo "✓ mejor_modelo.pkl encontrado"
+  echo "✓ Modelo encontrado en $MODEL_SOURCE"
+  MODEL_EXISTS=true
 fi
 
 echo ""
@@ -150,20 +155,26 @@ echo "Step 7: Obtener información del deployment"
 echo "========================================="
 echo ""
 
+# Obtener región
+REGION=$(aws configure get region || echo "us-east-1")
+
 # Obtener el nombre del bucket
 BUCKET_NAME=$(aws cloudformation describe-stacks \
+  --region "${REGION}" \
   --stack-name ml-retries-stack \
   --query 'Stacks[0].Outputs[?OutputKey==`ModelBucketName`].OutputValue' \
   --output text)
 
 # Obtener ARN de Lambda
 LAMBDA_ARN=$(aws cloudformation describe-stacks \
+  --region "${REGION}" \
   --stack-name ml-retries-stack \
   --query 'Stacks[0].Outputs[?OutputKey==`InferenceLambdaArn`].OutputValue' \
   --output text)
 
 # Obtener ARN de State Machine
 STATE_MACHINE_ARN=$(aws cloudformation describe-stacks \
+  --region "${REGION}" \
   --stack-name ml-retries-stack \
   --query 'Stacks[0].Outputs[?OutputKey==`StateMachineArn`].OutputValue' \
   --output text)
@@ -172,6 +183,18 @@ echo "Información de recursos:"
 echo "  S3 Bucket:        ${BUCKET_NAME}"
 echo "  Lambda ARN:       ${LAMBDA_ARN}"
 echo "  State Machine:    ${STATE_MACHINE_ARN}"
+echo ""
+
+# Validar que se obtuvieron los valores
+if [ -z "$BUCKET_NAME" ] || [ -z "$LAMBDA_ARN" ] || [ -z "$STATE_MACHINE_ARN" ]; then
+  echo "⚠️  Aviso: No se pudieron obtener todos los outputs del stack"
+  echo "Outputs disponibles:"
+  aws cloudformation describe-stacks \
+    --region "${REGION}" \
+    --stack-name ml-retries-stack \
+    --query 'Stacks[0].Outputs[*].[OutputKey, OutputValue]' \
+    --output table 2>/dev/null || echo "No se pudo obtener los outputs"
+fi
 
 echo ""
 echo "========================================="
@@ -179,15 +202,20 @@ echo "Step 8: Subir el modelo a S3"
 echo "========================================="
 echo ""
 
-if [ -f "mejor_modelo.pkl" ]; then
+if [ "$MODEL_EXISTS" = true ] && [ -f "$MODEL_SOURCE" ]; then
   echo "Subiendo modelo a S3..."
-  aws s3 cp mejor_modelo.pkl s3://${BUCKET_NAME}/models/mejor_modelo.pkl
+  aws s3 cp "$MODEL_SOURCE" "s3://${BUCKET_NAME}/models/mejor_modelo.pkl" --region "${REGION}"
   echo "✓ Modelo subido exitosamente"
+  echo ""
+  echo "Verificando que se subió correctamente..."
+  aws s3 ls "s3://${BUCKET_NAME}/models/" --region "${REGION}"
 else
-  echo "⚠️  mejor_modelo.pkl no encontrado. Sáltando esta etapa."
+  echo "⚠️  $MODEL_SOURCE no encontrado. El modelo NO fue subido a S3."
+  echo ""
+  echo "❌ IMPORTANTE: Sin el modelo en S3, Lambda no funcionará."
   echo ""
   echo "Cuando tengas el modelo, ejecúta:"
-  echo "  aws s3 cp mejor_modelo.pkl s3://${BUCKET_NAME}/models/mejor_modelo.pkl"
+  echo "  aws s3 cp ../models/mejor_modelo.pkl s3://${BUCKET_NAME}/models/mejor_modelo.pkl --region ${REGION}"
 fi
 
 echo ""
@@ -195,9 +223,34 @@ echo "========================================="
 echo "✓ Setup y Deployment Completado"
 echo "========================================="
 echo ""
-echo "Próximos pasos:"
-echo "  1. Verificar logs: aws logs tail /aws/lambda/ml-retries-inference --follow"
-echo "  2. Testear Lambda: ./scripts/test-lambda.sh"
-echo "  3. Testear State Machine: ./scripts/test-state-machine.sh"
+echo "Recursos desplegados:"
+echo "  S3 Bucket:        ${BUCKET_NAME}"
+echo "  Lambda ARN:       ${LAMBDA_ARN}"
+echo "  State Machine:    ${STATE_MACHINE_ARN}"
+echo ""
+echo "¿Deseas ejecutar los tests ahora? [y/n]"
+read -r run_tests
+if [ "${run_tests}" = "y" ]; then
+  echo ""
+  echo "Ejecutando test de Lambda..."
+  ./scripts/test-lambda.sh
+  echo ""
+  echo "Ejecutando test de State Machine..."
+  ./scripts/test-state-machine.sh
+fi
+
+echo ""
+echo "========================================="
+echo "Comandos útiles:"
+echo "========================================="
+echo ""
+echo "Ver logs de Lambda:"
+echo "  aws logs tail /aws/lambda/ml-retries-inference --follow"
+echo ""
+echo "Testear Lambda manualmente:"
+echo "  ./scripts/test-lambda.sh"
+echo ""
+echo "Testear State Machine:"
+echo "  ./scripts/test-state-machine.sh"
 echo ""
 echo "Ver detalles en: README.md"

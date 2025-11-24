@@ -5,19 +5,32 @@
 
 set -e
 
+# Obtener región desde AWS CLI o usar default
+REGION=$(aws configure get region || echo "us-east-1")
+
 echo "========================================="
 echo "Testing de State Machine de Reintentos"
 echo "========================================="
+echo "Región: ${REGION}"
+echo ""
 
 # Obtener ARN de la State Machine
 echo "Buscando State Machine..."
 STATE_MACHINE_ARN=$(aws cloudformation describe-stacks \
+  --region "${REGION}" \
   --stack-name ml-retries-stack \
   --query 'Stacks[0].Outputs[?OutputKey==`StateMachineArn`].OutputValue' \
   --output text 2>/dev/null || true)
 
 if [ -z "$STATE_MACHINE_ARN" ]; then
   echo "❌ Error: No se encontró la State Machine. ¿Has desplegado el stack?"
+  echo ""
+  echo "Debug: Outputs disponibles en el stack:"
+  aws cloudformation describe-stacks \
+    --region "${REGION}" \
+    --stack-name ml-retries-stack \
+    --query 'Stacks[0].Outputs[*].[OutputKey, OutputValue]' \
+    --output table 2>/dev/null || echo "No se pudo obtener los outputs"
   exit 1
 fi
 
@@ -25,39 +38,39 @@ echo "✓ State Machine encontrada: ${STATE_MACHINE_ARN}"
 echo ""
 
 # Crear input con múltiples reintentos
-echo "Creando input con 3 reintentos de ejemplo..."
+echo "Creando input con casos REALISTAS basados en datos de entrenamiento..."
 cat > /tmp/state_machine_input.json << 'EOF'
 {
   "retries": [
     {
-      "monto": 150.0,
-      "delta_horas": 5.0,
-      "retry_hour": 10,
+      "monto": 1000.0,
+      "delta_horas": 2.0,
+      "retry_hour": 20,
       "retry_dayofweek": 2,
       "retry_is_weekend": 0,
       "error_categoria": "cliente_4xx",
-      "detalle_fail": "Saldo insuficiente",
-      "retry_hora_bucket": "manana"
+      "detalle_fail": "Fondos insuficientes. La tarjeta no tiene fondos suficientes para realizar la compra.",
+      "retry_hora_bucket": "noche"
     },
     {
-      "monto": 250.0,
-      "delta_horas": 24.0,
-      "retry_hour": 14,
+      "monto": 1500.0,
+      "delta_horas": 1.0,
+      "retry_hour": 21,
       "retry_dayofweek": 3,
       "retry_is_weekend": 0,
-      "error_categoria": "servicio_5xx",
-      "detalle_fail": "Timeout del servicio",
-      "retry_hora_bucket": "tarde"
+      "error_categoria": "cliente_4xx",
+      "detalle_fail": "Excede el límite mensual de número de compras por correo",
+      "retry_hora_bucket": "noche"
     },
     {
-      "monto": 75.5,
-      "delta_horas": 2.5,
-      "retry_hour": 22,
-      "retry_dayofweek": 5,
-      "retry_is_weekend": 1,
+      "monto": 2000.0,
+      "delta_horas": 12.0,
+      "retry_hour": 4,
+      "retry_dayofweek": 3,
+      "retry_is_weekend": 0,
       "error_categoria": "cliente_4xx",
-      "detalle_fail": "Fondos insuficientes",
-      "retry_hora_bucket": "noche"
+      "detalle_fail": "Operación denegada. El cliente debe intentar nuevamente ó utilice otra tarjeta.",
+      "retry_hora_bucket": "madrugada"
     }
   ]
 }
@@ -69,6 +82,7 @@ echo ""
 # Ejecutar la State Machine
 echo "Ejecutando State Machine..."
 EXECUTION_ARN=$(aws stepfunctions start-execution \
+  --region "${REGION}" \
   --state-machine-arn ${STATE_MACHINE_ARN} \
   --input file:///tmp/state_machine_input.json \
   --query 'executionArn' \
@@ -81,6 +95,7 @@ echo ""
 echo "Esperando a que termine la ejecución (máx 30 segundos)..."
 for i in {1..30}; do
   STATUS=$(aws stepfunctions describe-execution \
+    --region "${REGION}" \
     --execution-arn ${EXECUTION_ARN} \
     --query 'status' \
     --output text)
@@ -107,12 +122,14 @@ echo ""
 # Ver detalles de la ejecución
 echo "Estado final:"
 aws stepfunctions describe-execution \
+  --region "${REGION}" \
   --execution-arn ${EXECUTION_ARN} \
   | jq '{status: .status, startDate: .startDate, stopDate: .stopDate}'
 
 echo ""
 echo "Historial de eventos:"
 aws stepfunctions get-execution-history \
+  --region "${REGION}" \
   --execution-arn ${EXECUTION_ARN} \
   | jq '.events[] | {type, timestamp}'
 

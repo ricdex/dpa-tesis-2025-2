@@ -157,7 +157,7 @@ dpa-tesis-2025-2/
 | Testear Lambda | `./scripts/test-lambda.sh` |
 | Testear State Machine | `./scripts/test-state-machine.sh` |
 | Ver logs | `aws logs tail /aws/lambda/ml-retries-inference --follow` |
-| Destruir | `npx cdk destroy` |
+| Destruir | `./scripts/destroy.sh` |
 
 ---
 
@@ -181,9 +181,7 @@ npx cdk deploy                           # Deploy manual
 aws logs tail /aws/lambda/ml-retries-inference --follow  # Ver logs
 
 # LIMPIEZA
-npx cdk destroy                          # Destruir stack
-aws s3 rm s3://{bucket} --recursive      # Limpiar bucket
-aws s3 rb s3://{bucket}                  # Eliminar bucket
+./scripts/destroy.sh                     # Destruir stack (automático + seguro)
 ```
 
 ---

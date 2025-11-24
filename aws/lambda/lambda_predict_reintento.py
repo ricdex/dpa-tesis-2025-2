@@ -55,9 +55,14 @@ MODEL_KEY = os.environ.get('MODEL_KEY', 'models/mejor_modelo.pkl')
 THRESHOLD = float(os.environ.get('THRESHOLD', '0.3'))
 
 if not MODEL_BUCKET:
+    logger.error("❌ FALTA variable de entorno MODEL_BUCKET")
     raise ValueError("Falta variable de entorno MODEL_BUCKET")
 
-logger.info(f"Configuración: MODEL_BUCKET={MODEL_BUCKET}, MODEL_KEY={MODEL_KEY}, THRESHOLD={THRESHOLD}")
+logger.info(f"✓ Configuración cargada:")
+logger.info(f"  MODEL_BUCKET={MODEL_BUCKET}")
+logger.info(f"  MODEL_KEY={MODEL_KEY}")
+logger.info(f"  THRESHOLD={THRESHOLD}")
+logger.info(f"  LOG_LEVEL={os.environ.get('LOG_LEVEL', 'INFO')}")
 
 # ============================================
 # Carga Global del Modelo (al inicializar Lambda)
@@ -89,12 +94,12 @@ def load_model_from_s3():
         _model = joblib.load(BytesIO(model_bytes))
         _model_loaded = True
 
-        logger.info("Modelo cargado exitosamente desde S3.")
+        logger.info("✓ Modelo cargado exitosamente desde S3.")
         return _model
 
     except Exception as e:
         logger.error(f"Error al cargar el modelo desde S3: {str(e)}", exc_info=True)
-        raise RuntimeError(f"No se pudo cargar el modelo: {str(e)}")
+        raise RuntimeError(f"No se pudo cargar el modelo desde S3: {str(e)}")
 
 
 # Cargar el modelo al inicializar el módulo (solo una vez)

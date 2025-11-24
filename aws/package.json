@@ -10,7 +10,7 @@
     "cdk": "cdk",
     "cdk:synth": "cdk synth",
     "cdk:deploy": "cdk deploy",
-    "cdk:destroy": "cdk destroy",
+    "cdk:destroy": "bash scripts/destroy.sh",
     "cdk:diff": "cdk diff"
   },
   "keywords": [

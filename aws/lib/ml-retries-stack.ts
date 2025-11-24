@@ -3,6 +3,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import { Platform } from 'aws-cdk-lib/aws-ecr-assets';
 import * as stepfunctions from 'aws-cdk-lib/aws-stepfunctions';
 import * as stepfunctions_tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { Construct } from 'constructs';
@@ -43,7 +44,7 @@ export class MlRetriesStack extends cdk.Stack {
       {
         code: lambda.DockerImageCode.fromImageAsset('./lambda', {
           file: 'Dockerfile',
-          platform: cdk.aws_ecr.Platform.LINUX_AMD64,
+          platform: Platform.LINUX_AMD64,
         }),
         architecture: lambda.Architecture.X86_64,
         timeout: cdk.Duration.seconds(60),
@@ -51,8 +52,8 @@ export class MlRetriesStack extends cdk.Stack {
         environment: {
           MODEL_BUCKET: modelBucket.bucketName,
           MODEL_KEY: 'models/mejor_modelo.pkl',
-          THRESHOLD: '0.3',
-          LOG_LEVEL: 'INFO',
+          THRESHOLD: '0.1',
+          LOG_LEVEL: 'DEBUG',
         },
         logGroup: lambdaLogGroup,
       }
@@ -76,9 +77,12 @@ export class MlRetriesStack extends cdk.Stack {
       'InvokeInferenceLambda',
       {
         lambdaFunction: inferenceLambda,
-        outputPath: '$.Payload',
+        outputPath: '$.Payload.body',
       }
     );
+
+    // Estado final para ambas ramas del Choice
+    const finalizeResult = new stepfunctions.Pass(this, 'FinalizeResult');
 
     // Estados para decisión de reintento
     const retryApprovedState = new stepfunctions.Pass(
@@ -91,7 +95,7 @@ export class MlRetriesStack extends cdk.Stack {
         }),
         resultPath: '$.decision_result',
       }
-    );
+    ).next(finalizeResult);
 
     const retryRejectedState = new stepfunctions.Pass(
       this,
@@ -103,7 +107,7 @@ export class MlRetriesStack extends cdk.Stack {
         }),
         resultPath: '$.decision_result',
       }
-    );
+    ).next(finalizeResult);
 
     // Choice state para decidir basándose en la respuesta de la Lambda
     const decisionChoice = new stepfunctions.Choice(this, 'DecidirReintento')
@@ -113,14 +117,8 @@ export class MlRetriesStack extends cdk.Stack {
       )
       .otherwise(retryRejectedState);
 
-    // Chain: invoke lambda -> decision -> resultado
-    const chainProcess = invokeInferenceTask
-      .next(decisionChoice)
-      .next(
-        new stepfunctions.Pass(this, 'FinalizeResult', {
-          end: true,
-        })
-      );
+    // Chain: invoke lambda -> decision
+    const chainProcess = invokeInferenceTask.next(decisionChoice);
 
     // Map state que itera sobre un array de transacciones del input
     const mapState = new stepfunctions.Map(this, 'ProcessRetriesMap', {
@@ -134,14 +132,9 @@ export class MlRetriesStack extends cdk.Stack {
     // Definir la máquina de estados
     const stateMachineDefinition = new stepfunctions.Pass(
       this,
-      'PrepareInput',
-      {
-        next: mapState,
-      }
-    ).next(
-      new stepfunctions.Pass(this, 'FinalOutput', {
-        end: true,
-      })
+      'PrepareInput'
+    ).next(mapState).next(
+      new stepfunctions.Pass(this, 'FinalOutput')
     );
 
     const retriesStateMachine = new stepfunctions.StateMachine(

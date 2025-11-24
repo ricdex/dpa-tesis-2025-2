@@ -332,13 +332,16 @@ def main():
             mejor_nombre = nombre
 
     df_res = pd.DataFrame(resultados)
-    df_res.to_csv("metrics_resultados.csv", index=False)
-    print("\nMétricas guardadas en metrics_resultados.csv")
+    # Crear carpeta models si no existe
+    os.makedirs("models", exist_ok=True)
+
+    df_res.to_csv("models/metrics_resultados.csv", index=False)
+    print("\nMétricas guardadas en models/metrics_resultados.csv")
     print(df_res)
 
     if mejor_modelo is not None:
-        joblib.dump(mejor_modelo, "mejor_modelo.pkl")
-        print(f"\nMejor modelo: {mejor_nombre} (F1={mejor_f1:.4f}) guardado en mejor_modelo.pkl")
+        joblib.dump(mejor_modelo, "models/mejor_modelo.pkl")
+        print(f"\nMejor modelo: {mejor_nombre} (F1={mejor_f1:.4f}) guardado en models/mejor_modelo.pkl")
 
     # -------- 5) Uplift de negocio --------
     print("\n=== 5) Uplift de negocio (baseline vs modelo) ===")
