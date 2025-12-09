@@ -1,0 +1,74 @@
+# ===========================================
+# TESIS - Archivos a ignorar en Git
+# ===========================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+.ipynb_checkpoints/
+
+# Datos y Modelos Generados
+models/mejor_modelo.pkl
+models/metrics_resultados.csv
+*.xlsx
+*.csv
+*.pkl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS
+.DS_Store
+.env
+.env.local
+
+# ===========================================
+# AWS - Archivos a ignorar en Git
+# ===========================================
+
+# Node.js / npm
+node_modules/
+dist/
+*.js
+*.d.ts
+!jest.config.js
+
+# CDK
+cdk.out/
+cdk.context.json
+
+# Logs
+*.log
+logs/
+
+# Temporary
+*.tmp
+tmp/
+temp/
+
+# ===========================================
+# Jupyter
+# ===========================================
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ===========================================
+# Proyectos específicos
+# ===========================================
+*.xlsx
+suscripciones.xlsx

@@ -1,0 +1,32 @@
+{
+  "name": "ml-retries-infrastructure",
+  "version": "1.0.0",
+  "description": "AWS CDK Infrastructure for ML-based Payment Retry Prediction",
+  "main": "app.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk",
+    "cdk:synth": "cdk synth",
+    "cdk:deploy": "cdk deploy",
+    "cdk:destroy": "bash scripts/destroy.sh",
+    "cdk:diff": "cdk diff"
+  },
+  "keywords": [
+    "cdk",
+    "aws",
+    "lambda",
+    "step-functions"
+  ],
+  "author": "",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "~5.0.0"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.100.0",
+    "constructs": "^10.0.0"
+  }
+}

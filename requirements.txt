@@ -1,0 +1,23 @@
+# Dependencias para Fase Offline (Tesis)
+# Entrenamiento y evaluación local de modelos ML
+# IMPORTANTE: Estas versiones DEBEN coincidir exactamente con las de aws/lambda/requirements.txt
+
+# Data manipulation
+pandas==2.3.3
+numpy==1.26.4
+openpyxl>=3.0.0  # Para leer archivos Excel
+
+# Machine Learning
+scikit-learn==1.6.1
+xgboost==2.1.4
+
+# Serialización y utilidades
+joblib>=1.3.0
+
+# Visualización (opcional)
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Jupyter (opcional, para análisis exploratorio)
+jupyter>=1.0.0
+ipython>=8.0.0
